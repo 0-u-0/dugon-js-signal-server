@@ -1,0 +1,17 @@
+{
+  "name": "signal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mediasoup": "^3.5.5",
+    "nats": "^1.4.8",
+    "ws": "^7.2.3"
+  }
+}
