@@ -1,8 +1,8 @@
-class MediaPublishTransport {
-  constructor(router) {
+class MediaTransport {
+  constructor(id, router) {
+    this.id = id;
     this.router = router;
     this.transport = null;
-    this.producers = new Map();
   }
 
   get transportParameters() {
@@ -13,14 +13,14 @@ class MediaPublishTransport {
     };
 
     return {
-      id: this.transport.id,
+      id: this.id,
       iceParameters: this.transport.iceParameters,
       iceCandidates: this.transport.iceCandidates,
       dtlsParameters: dtls,
     }
   }
 
-  async init() {
+  async init(isPub) {
     // TODO: move to config
     const webRtcTransportOptions =
     {
@@ -38,7 +38,7 @@ class MediaPublishTransport {
       maxIncomingBitrate: 1500000,
       enableSctp: false,
       numSctpStreams: 0,
-      appData: { consuming: false, producing: true }
+      appData: { consuming: !isPub, producing: isPub }
     };
 
     this.transport = await this.router.createWebRtcTransport(webRtcTransportOptions);
@@ -48,13 +48,6 @@ class MediaPublishTransport {
     await this.transport.connect({ dtlsParameters });
   }
 
-  async produce(kind, rtpParameters) {
-    const producer = await this.transport.produce({ kind, rtpParameters });
-    this.producers.set(producer.id, producer);
-    return producer.id;
-  }
-
-
 }
 
-module.exports = MediaPublishTransport;
+module.exports = MediaTransport;

@@ -1,7 +1,7 @@
 const mediasoup = require('mediasoup');
 
-const MediaPublishTransport = require('./mediaPublishTransport');
-const MediaSubscribeTransport = require('./mediaSubscribeTransport');
+const MediaPublisher = require('./mediaPublisher');
+const MediaSubscriber = require('./mediaSubscriber');
 
 const mediaCodecs = [{
   kind: 'audio',
@@ -24,8 +24,7 @@ class MediaHub {
     this.worker = null;
     this.router = null;
 
-    this.publishTransports = new Map();
-    this.subscribeTransports = new Map();
+    this.transports = new Map();
   }
 
   async init() {
@@ -60,14 +59,17 @@ class MediaHub {
 
   }
 
-  async createPublishTransport(id) {
-    const publishTransport = new MediaPublishTransport(this.router);
-    await publishTransport.init();
-    this.publishTransports.set(id,publishTransport);
-    return publishTransport;
+  async createTransport(id, role) {
+    let transport = null;
+    if (role === 'pub') {
+      transport = new MediaPublisher(id, this.router);
+    } else {
+      transport = new MediaSubscriber(id, this.router);
+    }
+    await transport.init();
+    this.transports.set(id, transport);
+    return transport;
   }
-
-  
 
 }
 

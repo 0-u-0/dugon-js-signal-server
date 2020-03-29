@@ -1,5 +1,12 @@
 const MediaHub = require('./mediaHub');
 
+const crypto = require('crypto');
+
+
+function idGenerator(sessionId, tokenId, role) {
+  return crypto.createHash('md5').update(`${sessionId}@${tokenId}@${role}`).digest('hex');
+}
+
 class Client {
   /**
    * 
@@ -49,39 +56,68 @@ class Client {
 
     if (method === 'request') {
       const { event, data } = params;
-      if (event === 'join') {
+      this.handleClientRequest(id, event, data);
+    }
+  }
+
+  async handleClientRequest(requestId, event, data) {
+    switch (event) {
+      case 'join': {
         this.subscribe();
         this.pub2Session('join');
 
-        this.response(id);
-      } else if (event === 'createPublishTransport') {
-        //
-        const publishTransport = await this.mediaHub.createPublishTransport(this.tokenId);
-        this.response(id, {
-          'transportParameters': publishTransport.transportParameters
-        })
-      } else if (event === 'publishDtls') {
-        const publishTransport = this.mediaHub.publishTransports.get(this.tokenId);
-        if (publishTransport) {
-          const { dtlsParameters } = data;
-          await publishTransport.setDtlsParameters(dtlsParameters)
+        this.response(requestId);
+
+        break;
+      }
+      case 'transport': {
+        const { role } = data;
+
+        const transportId = idGenerator(this.sessionId, this.tokenId, role);
+
+        if (!this.mediaHub.transports.has(transportId)) {
+          const transport = await this.mediaHub.createTransport(transportId, role);
+          this.response(requestId, {
+            'transportParameters': transport.transportParameters
+          })
+        } else {
+          //TODO: error
         }
-        this.response(id);
-      } else if (event === 'produce') {
-        const publishTransport = this.mediaHub.publishTransports.get(this.tokenId);
-        if (publishTransport) {
-          const { kind, rtpParameters, localId } = data;
-          const producerId = await publishTransport.produce(kind, rtpParameters);
-          this.response(id, {
+
+        break;
+      }
+      case 'dtls': {
+
+        const { transportId, dtlsParameters } = data;
+        const transport = this.mediaHub.transports.get(transportId);
+        if (transport) {
+          await transport.setDtlsParameters(dtlsParameters)
+          this.response(requestId);
+
+        } else {
+          //TODO: error
+        }
+
+        break;
+      }
+      case 'produce': {
+        const { transportId, kind, rtpParameters, localId, metadata } = data;
+
+        const publisher = this.mediaHub.transports.get(transportId);
+        if (publisher) {
+          const producerId = await publisher.produce(kind, rtpParameters, metadata);
+          this.response(requestId, {
             producerId,
             localId
           });
 
           //TODO: broadcast producer
           this.pub2Session('produce', {
-            producerId
+            producerId,
+            metadata
           });
         }
+        break;
       }
     }
   }
@@ -128,21 +164,24 @@ class Client {
         }
       });
       //TODO: producer
-      const publishTransport = this.mediaHub.publishTransports.get(this.tokenId);
-      if (publishTransport) {
-        publishTransport.producers.forEach((v, producerId) => {
+      const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
+      const publisher = this.mediaHub.transports.get(transportId);
+      if (publisher) {
+        publisher.producers.forEach((producer, producerId) => {
           this.pub2One(tokenId, 'produce', {
-            producerId
+            producerId,
+            metadata: producer.appData
           });
         })
       }
 
     } else if (method === 'produce') {
-      const { producerId } = data;
+      const { producerId, metadata } = data;
       this.notification({
         'event': 'produce',
         producerId,
-        tokenId
+        tokenId,
+        metadata
       });
     }
 
@@ -163,11 +202,13 @@ class Client {
 
         this.pub2One(tokenId, 'join');
         //TODO: producer
-        const publishTransport = this.mediaHub.publishTransports.get(this.tokenId);
-        if (publishTransport) {
-          publishTransport.producers.forEach((v, producerId) => {
+        const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
+        const publisher = this.mediaHub.transports.get(transportId);
+        if (publisher) {
+          publisher.producers.forEach((producer, producerId) => {
             this.pub2One(tokenId, 'produce', {
-              producerId
+              producerId,
+              metadata: producer.appData
             });
           })
         }
@@ -180,11 +221,12 @@ class Client {
           }
         });
       } else if (method === 'produce') {
-        const { producerId } = data;
+        const { producerId, metadata } = data;
         this.notification({
           'event': 'produce',
           producerId,
-          tokenId
+          tokenId,
+          metadata
         });
       }
     }
