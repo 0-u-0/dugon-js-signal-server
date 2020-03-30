@@ -119,6 +119,20 @@ class Client {
         }
         break;
       }
+      case 'consume': {
+        const { tokenId, producerId, transportId } = data;
+
+        const subscriber = this.mediaHub.transports.get(transportId);
+        if(subscriber){
+          const consumerParameters = await subscriber.consume(producerId);
+          this.response(requestId,{
+            ...consumerParameters,
+            producerId
+          })
+        }
+
+      }
+
     }
   }
 
@@ -179,9 +193,11 @@ class Client {
       const { producerId, metadata } = data;
       this.notification({
         'event': 'produce',
-        producerId,
-        tokenId,
-        metadata
+        'data': {
+          producerId,
+          tokenId,
+          metadata
+        }
       });
     }
 
@@ -224,9 +240,11 @@ class Client {
         const { producerId, metadata } = data;
         this.notification({
           'event': 'produce',
-          producerId,
-          tokenId,
-          metadata
+          'data': {
+            producerId,
+            tokenId,
+            metadata
+          }
         });
       }
     }
