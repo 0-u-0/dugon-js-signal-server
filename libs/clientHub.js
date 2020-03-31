@@ -4,8 +4,8 @@ const WebSocket = require('ws');
 const Client = require('./client');
 
 
-class ClientHub{
-  constructor(nc,mediaHub){
+class ClientHub {
+  constructor(nc, mediaHub) {
     this.nc = nc;
     this.mediaHub = mediaHub;
     this.port = 8800;
@@ -13,20 +13,28 @@ class ClientHub{
     this.clients = [];
   }
 
-  init(){
+  init() {
     this.wss = new WebSocket.Server({ port: this.port });
     console.log(`ws on port ${this.port}`)
-    this.wss.on('connection', (ws,request)=>{
+    this.wss.on('connection', (ws, request) => {
       console.log(request.url);
-      let urlObj = URL.parse(request.url,true);
+      let urlObj = URL.parse(request.url, true);
       let sessionId = urlObj.query['sessionId'];
       let tokenId = urlObj.query['tokenId'];
-      
-      const client = new Client(ws,this.nc,this.mediaHub,sessionId,tokenId);
+
+      const client = new Client(ws, this.nc, this.mediaHub, sessionId, tokenId);
+      client.ondisconnect = _ => {
+        const index = this.clients.indexOf(client);
+        if (index > -1) {
+          this.clients.splice(index, 1);
+        }
+
+      };
+
       client.init();
       //TODO: delete when websocket closed
       this.clients.push(client);
-      
+
     });
   }
 }

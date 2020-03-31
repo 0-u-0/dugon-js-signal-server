@@ -24,8 +24,12 @@ class Client {
     this.sessionId = sessionId;
     this.tokenId = tokenId;
 
+    //NATS subscriber id
     this.sessionSid = null;
     this.oneSid = null;
+
+    // event
+    this.ondisconnect = null;
   }
 
   init() {
@@ -35,15 +39,20 @@ class Client {
     });
 
     this.ws.on('close', event => {
-      // TODO: 
+      this.ondisconnect();
       this.release();
     });
   }
 
   release() {
+    //NATS release
     this.nc.unsubscribe(this.sessionSid);
     this.nc.unsubscribe(this.oneSid);
 
+    //Media release
+    //TODO:
+
+    //Client notification
     this.pub2Session('leave');
   }
 
@@ -79,7 +88,7 @@ class Client {
           const transport = await this.mediaHub.createTransport(transportId, role);
           this.response(requestId, {
             'transportParameters': transport.transportParameters
-          })
+          });
         } else {
           //TODO: error
         }
@@ -123,9 +132,9 @@ class Client {
         const { tokenId, producerId, transportId } = data;
 
         const subscriber = this.mediaHub.transports.get(transportId);
-        if(subscriber){
+        if (subscriber) {
           const consumerParameters = await subscriber.consume(producerId);
-          this.response(requestId,{
+          this.response(requestId, {
             ...consumerParameters,
             producerId
           })
@@ -163,7 +172,6 @@ class Client {
   }
 
   /* -------  NATS  --------- */
-
   handleOneMsg(msg) {
     let jsonMsg = JSON.parse(msg);
     let { tokenId, method, data } = jsonMsg;
