@@ -128,6 +128,17 @@ class Client {
         }
         break;
       }
+      case 'closeProducer': {
+        const { transportId, producerId } = data;
+
+        const publisher = this.mediaHub.transports.get(transportId);
+        if (publisher) {
+          publisher.closeProducer(producerId);
+          this.response(requestId);
+        }
+
+        break;
+      }
       case 'consume': {
         const { tokenId, producerId, transportId } = data;
 
@@ -140,6 +151,7 @@ class Client {
           })
         }
 
+        break;
       }
 
     }

@@ -16,6 +16,14 @@ class MediaPublisher extends MediaTransport {
     return producer.id;
   }
 
+  closeProducer(producerId) {
+    const producer = this.producers.get(producerId);
+    if (producer) {
+      producer.close();
+      this.producers.delete(producerId);
+    }
+  }
+
 }
 
 module.exports = MediaPublisher;

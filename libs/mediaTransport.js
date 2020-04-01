@@ -9,7 +9,7 @@ class MediaTransport {
     //TODO: 
     const dtls = {
       fingerprint: this.transport.dtlsParameters.fingerprints[2],
-      role: 'client'
+      role: 'server'
     };
 
     return {
