@@ -72,10 +72,37 @@ class Client {
   async handleClientRequest(requestId, event, data) {
     switch (event) {
       case 'join': {
+        const { pub, sub } = data;
+
+        const transportParameters = {};
+        if (pub) {
+          const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
+
+          if (!this.mediaHub.transports.has(transportId)) {
+            const transport = await this.mediaHub.createTransport(transportId, 'pub');
+            transportParameters.pub = transport.transportParameters
+          } else {
+            //TODO: error
+          }
+        }
+        if (sub) {
+          const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
+
+          if (!this.mediaHub.transports.has(transportId)) {
+            const transport = await this.mediaHub.createTransport(transportId, 'sub');
+            transportParameters.sub = transport.transportParameters
+          } else {
+            //TODO: error
+          }
+        }
+
+        this.response(requestId, {
+          ...transportParameters
+        });
+
         this.subscribe();
         this.pub2Session('join');
 
-        this.response(requestId);
 
         break;
       }
@@ -211,6 +238,7 @@ class Client {
 
     } else if (method === 'produce') {
       const { producerId, metadata } = data;
+      //TODO: create consume directly
       this.notification({
         'event': 'produce',
         'data': {
@@ -258,6 +286,7 @@ class Client {
         });
       } else if (method === 'produce') {
         const { producerId, metadata } = data;
+        //TODO: create consume directly
         this.notification({
           'event': 'produce',
           'data': {
