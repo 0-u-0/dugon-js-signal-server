@@ -107,20 +107,20 @@ class Client {
         break;
       }
       case 'transport': {
-        const { role } = data;
+        // const { role } = data;
 
-        const transportId = idGenerator(this.sessionId, this.tokenId, role);
+        // const transportId = idGenerator(this.sessionId, this.tokenId, role);
 
-        if (!this.mediaHub.transports.has(transportId)) {
-          const transport = await this.mediaHub.createTransport(transportId, role);
-          this.response(requestId, {
-            'transportParameters': transport.transportParameters
-          });
-        } else {
-          //TODO: error
-        }
+        // if (!this.mediaHub.transports.has(transportId)) {
+        //   const transport = await this.mediaHub.createTransport(transportId, role);
+        //   this.response(requestId, {
+        //     'transportParameters': transport.transportParameters
+        //   });
+        // } else {
+        //   //TODO: error
+        // }
 
-        break;
+        // break;
       }
       case 'dtls': {
 
@@ -211,7 +211,7 @@ class Client {
   }
 
   /* -------  NATS  --------- */
-  handleOneMsg(msg) {
+  async handleOneMsg(msg) {
     let jsonMsg = JSON.parse(msg);
     let { tokenId, method, data } = jsonMsg;
     console.log(`individual message: ${tokenId} -> ${this.tokenId} `, jsonMsg);
@@ -239,19 +239,29 @@ class Client {
     } else if (method === 'produce') {
       const { producerId, metadata } = data;
       //TODO: create consume directly
-      this.notification({
-        'event': 'produce',
-        'data': {
-          producerId,
-          tokenId,
-          metadata
-        }
-      });
+
+      const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
+
+      const subscriber = this.mediaHub.transports.get(transportId);
+      if (subscriber) {
+        const consumerParameters = await subscriber.consume(producerId);
+
+        this.notification({
+          'event': 'produce',
+          'data': {
+            ...consumerParameters,
+            producerId,
+            tokenId,
+            metadata
+          }
+        });
+      }
+
     }
 
   }
 
-  handleSessionMsg(msg) {
+  async handleSessionMsg(msg) {
     let jsonMsg = JSON.parse(msg);
     let { tokenId, method, data } = jsonMsg;
     if (tokenId != this.tokenId) {
@@ -286,15 +296,24 @@ class Client {
         });
       } else if (method === 'produce') {
         const { producerId, metadata } = data;
-        //TODO: create consume directly
-        this.notification({
-          'event': 'produce',
-          'data': {
-            producerId,
-            tokenId,
-            metadata
-          }
-        });
+
+        const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
+
+        const subscriber = this.mediaHub.transports.get(transportId);
+        if (subscriber) {
+          const consumerParameters = await subscriber.consume(producerId);
+
+          this.notification({
+            'event': 'produce',
+            'data': {
+              ...consumerParameters,
+              producerId,
+              tokenId,
+              metadata
+            }
+          });
+        }
+
       }
     }
   }
