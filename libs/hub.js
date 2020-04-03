@@ -4,10 +4,9 @@ const WebSocket = require('ws');
 const Client = require('./client');
 
 
-class ClientHub {
-  constructor(nc, mediaHub) {
+class Hub {
+  constructor(nc) {
     this.nc = nc;
-    this.mediaHub = mediaHub;
     this.port = 8800;
     this.wss = null;
     this.clients = [];
@@ -22,7 +21,7 @@ class ClientHub {
       let sessionId = urlObj.query['sessionId'];
       let tokenId = urlObj.query['tokenId'];
 
-      const client = new Client(ws, this.nc, this.mediaHub, sessionId, tokenId);
+      const client = new Client(ws, this.nc, sessionId, tokenId);
       client.ondisconnect = _ => {
         const index = this.clients.indexOf(client);
         if (index > -1) {
@@ -39,4 +38,4 @@ class ClientHub {
   }
 }
 
-module.exports = ClientHub;
+module.exports = Hub;

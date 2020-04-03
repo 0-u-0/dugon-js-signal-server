@@ -1,17 +1,13 @@
 const NATS = require('nats');
 
-const ClientHub =  require('./libs/clientHub');
-const MediaHub = require('./libs/mediaHub');
+const Hub =  require('./libs/hub');
 
 
 async function main() {
   const nc = NATS.connect();
 
-  const mediaHub = new MediaHub();
-  await mediaHub.init();
-
-  const clientHub = new ClientHub(nc,mediaHub);
-  clientHub.init();
+  const hub = new Hub(nc);
+  hub.init();
 }
 
 
