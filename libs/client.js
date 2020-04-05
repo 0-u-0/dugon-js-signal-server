@@ -145,40 +145,41 @@ class Client {
 
         break;
       }
-      case 'produce': {
+      case 'publish': {
         const { transportId, kind, rtpParameters, localId, metadata } = data;
 
-        const { producerId } = await this.requestMedia('produce', {
+        const { senderId } = await this.requestMedia('publish', {
           transportId, kind, rtpParameters, metadata
         });
 
         this.response(requestId, {
-          producerId,
+          senderId,
           localId
         });
 
-        this.pub2Session('produce', {
-          producerId,
+        this.pub2Session('publish', {
+          senderId,
           metadata
         });
         break;
       }
-      case 'closeProducer': {
-        const { transportId, producerId } = data;
+      case 'unpublish': {
+        const { transportId, senderId } = data;
 
-        await this.requestMedia('closeProducer', {
-          transportId, producerId
+        await this.requestMedia('unpublish', {
+          transportId,
+          senderId
         })
         this.response(requestId);
 
         //TODO: broadcast
-        this.pub2Session('closeProducer', {
-          producerId
+        this.pub2Session('unpublish', {
+          senderId
         })
 
         break;
       }
-      case 'consume': {
+      case 'subscribe': {
         // const { tokenId, producerId, transportId } = data;
 
         // const subscriber = this.mediaHub.transports.get(transportId);
@@ -194,11 +195,12 @@ class Client {
       }
 
       case 'unsubscribe': {
-        const { consumerId, producerId, transportId } = data;
+        const { senderId, transportId } = data;
 
 
         await this.requestMedia('unsubscribe', {
-          transportId, producerId
+          transportId,
+          senderId
         })
         this.response(requestId);
 
@@ -251,14 +253,14 @@ class Client {
       //TODO: producer
       const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
 
-      const { producers } = await this.requestMedia('producers', {
+      const { senders } = await this.requestMedia('senders', {
         transportId
       });
 
-      producers.forEach(producer => {
-        this.pub2One(tokenId, 'produce', {
-          producerId: producer.producerId,
-          metadata: producer.metadata
+      senders.forEach(sender => {
+        this.pub2One(tokenId, 'publish', {
+          senderId: sender.senderId,
+          metadata: sender.metadata
         });
       });
 
@@ -272,21 +274,22 @@ class Client {
       //   })
       // }
 
-    } else if (method === 'produce') {
-      const { producerId, metadata } = data;
+    } else if (method === 'publish') {
+      const { senderId, metadata } = data;
       //TODO: create consume directly
 
       const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
 
-      const { consumerParameters } = await this.requestMedia('consume', {
-        transportId, producerId
+      const { parameters } = await this.requestMedia('subscribe', {
+        transportId,
+        senderId
       })
 
       this.notification({
-        'event': 'produce',
+        'event': 'publish',
         'data': {
-          ...consumerParameters,
-          producerId,
+          ...parameters,
+          senderId,
           tokenId,
           metadata
         }
@@ -313,14 +316,14 @@ class Client {
         //TODO: producer
         const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
 
-        const { producers } = await this.requestMedia('producers', {
+        const { senders } = await this.requestMedia('senders', {
           transportId
         });
 
-        producers.forEach(producer => {
-          this.pub2One(tokenId, 'produce', {
-            producerId: producer.producerId,
-            metadata: producer.metadata
+        senders.forEach(sender => {
+          this.pub2One(tokenId, 'publish', {
+            senderId: sender.senderId,
+            metadata: sender.metadata
           });
         });
 
@@ -331,31 +334,32 @@ class Client {
             tokenId
           }
         });
-      } else if (method === 'produce') {
-        const { producerId, metadata } = data;
+      } else if (method === 'publish') {
+        const { senderId, metadata } = data;
 
         const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
 
-        const { consumerParameters } = await this.requestMedia('consume', {
-          transportId, producerId
+        const { parameters } = await this.requestMedia('subscribe', {
+          transportId,
+          senderId
         })
 
         this.notification({
-          'event': 'produce',
+          'event': 'publish',
           'data': {
-            ...consumerParameters,
-            producerId,
+            ...parameters,
+            senderId,
             tokenId,
             metadata
           }
         });
 
-      } else if (method === 'closeProducer') {
-        const { producerId } = data;
+      } else if (method === 'unpublish') {
+        const { senderId } = data;
         this.notification({
-          'event': 'closeProducer',
+          'event': 'unpublish',
           'data': {
-            producerId,
+            senderId,
             tokenId
           }
         });
