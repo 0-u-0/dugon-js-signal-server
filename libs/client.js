@@ -193,7 +193,6 @@ class Client {
 
         break;
       }
-
       case 'unsubscribe': {
         const { senderId, transportId } = data;
 
@@ -236,65 +235,63 @@ class Client {
     }
   }
 
+
+  async notifySenders(tokenId) {
+    const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
+    const { senders } = await this.requestMedia('senders', {
+      transportId
+    });
+    senders.forEach(sender => {
+      this.pub2One(tokenId, 'publish', {
+        senderId: sender.senderId,
+        metadata: sender.metadata
+      });
+    });
+  }
+
+  async notifySender2Client(tokenId, senderId, metadata) {
+    const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
+
+    const { parameters } = await this.requestMedia('subscribe', {
+      transportId,
+      senderId
+    })
+
+    this.notification({
+      'event': 'publish',
+      'data': {
+        ...parameters,
+        senderId,
+        tokenId,
+        metadata
+      }
+    });
+  }
+
   /* -------  NATS  --------- */
   async handleOneMsg(msg) {
     let jsonMsg = JSON.parse(msg);
     let { tokenId, method, data } = jsonMsg;
     console.log(`individual message: ${tokenId} -> ${this.tokenId} `, jsonMsg);
 
-    if (method === 'join') {
-
-      this.notification({
-        event: 'join',
-        data: {
-          tokenId
-        }
-      });
-      //TODO: producer
-      const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
-
-      const { senders } = await this.requestMedia('senders', {
-        transportId
-      });
-
-      senders.forEach(sender => {
-        this.pub2One(tokenId, 'publish', {
-          senderId: sender.senderId,
-          metadata: sender.metadata
+    switch (method) {
+      case 'join': {
+        this.notification({
+          event: 'join',
+          data: {
+            tokenId
+          }
         });
-      });
 
-      // const publisher = this.mediaHub.transports.get(transportId);
-      // if (publisher) {
-      //   publisher.producers.forEach((producer, producerId) => {
-      //     this.pub2One(tokenId, 'produce', {
-      //       producerId,
-      //       metadata: producer.appData
-      //     });
-      //   })
-      // }
-
-    } else if (method === 'publish') {
-      const { senderId, metadata } = data;
-      //TODO: create consume directly
-
-      const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
-
-      const { parameters } = await this.requestMedia('subscribe', {
-        transportId,
-        senderId
-      })
-
-      this.notification({
-        'event': 'publish',
-        'data': {
-          ...parameters,
-          senderId,
-          tokenId,
-          metadata
-        }
-      });
-
+        //FIXME: maybe useless
+        this.notifySenders(tokenId);
+        break;
+      }
+      case 'publish': {
+        const { senderId, metadata } = data;
+        this.notifySender2Client(tokenId, senderId, metadata);
+        break;
+      }
     }
 
   }
@@ -304,65 +301,47 @@ class Client {
     let { tokenId, method, data } = jsonMsg;
     if (tokenId != this.tokenId) {
       console.log(`session message: ${tokenId} -> ${this.tokenId}`, jsonMsg);
-      if (method === 'join') {
-        this.notification({
-          event: 'join',
-          data: {
-            tokenId
-          }
-        });
-
-        this.pub2One(tokenId, 'join');
-        //TODO: producer
-        const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
-
-        const { senders } = await this.requestMedia('senders', {
-          transportId
-        });
-
-        senders.forEach(sender => {
-          this.pub2One(tokenId, 'publish', {
-            senderId: sender.senderId,
-            metadata: sender.metadata
+      switch (method) {
+        case 'join': {
+          this.notification({
+            event: 'join',
+            data: {
+              tokenId
+            }
           });
-        });
 
-      } else if (method === 'leave') {
-        this.notification({
-          event: 'leave',
-          data: {
-            tokenId
-          }
-        });
-      } else if (method === 'publish') {
-        const { senderId, metadata } = data;
+          this.pub2One(tokenId, 'join');
 
-        const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
+          this.notifySenders(tokenId);
+          break;
+        }
+        case 'leave': {
+          this.notification({
+            event: 'leave',
+            data: {
+              tokenId
+            }
+          });
+          break;
+        }
+        case 'publish': {
+          const { senderId, metadata } = data;
 
-        const { parameters } = await this.requestMedia('subscribe', {
-          transportId,
-          senderId
-        })
+          this.notifySender2Client(tokenId, senderId, metadata);
+          break;
+        }
+        case 'unpublish': {
+          const { senderId } = data;
+          this.notification({
+            'event': 'unpublish',
+            'data': {
+              senderId,
+              tokenId
+            }
+          });
 
-        this.notification({
-          'event': 'publish',
-          'data': {
-            ...parameters,
-            senderId,
-            tokenId,
-            metadata
-          }
-        });
-
-      } else if (method === 'unpublish') {
-        const { senderId } = data;
-        this.notification({
-          'event': 'unpublish',
-          'data': {
-            senderId,
-            tokenId
-          }
-        });
+          break;
+        }
       }
     }
   }
