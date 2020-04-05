@@ -171,6 +171,11 @@ class Client {
         })
         this.response(requestId);
 
+        //TODO: broadcast
+        this.pub2Session('closeProducer', {
+          producerId
+        })
+
         break;
       }
       case 'consume': {
@@ -184,6 +189,18 @@ class Client {
         //     producerId
         //   })
         // }
+
+        break;
+      }
+
+      case 'unsubscribe': {
+        const { consumerId, producerId, transportId } = data;
+
+
+        await this.requestMedia('unsubscribe', {
+          transportId, producerId
+        })
+        this.response(requestId);
 
         break;
       }
@@ -333,6 +350,15 @@ class Client {
           }
         });
 
+      } else if (method === 'closeProducer') {
+        const { producerId } = data;
+        this.notification({
+          'event': 'closeProducer',
+          'data': {
+            producerId,
+            tokenId
+          }
+        });
       }
     }
   }
