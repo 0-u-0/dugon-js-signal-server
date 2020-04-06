@@ -49,7 +49,6 @@ class Client {
     this.pub2Session('leave');
 
     //Media release
-    //TODO:
     this.requestMedia('close', {
       transportId: idGenerator(this.sessionId, this.tokenId, 'pub')
     });
