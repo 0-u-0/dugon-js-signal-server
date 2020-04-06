@@ -154,15 +154,14 @@ class Client {
         break;
       }
       case 'publish': {
-        const { transportId, kind, rtpParameters, localId, metadata } = data;
+        const { transportId, kind, rtpParameters, metadata } = data;
 
         const { senderId } = await this.requestMedia('publish', {
           transportId, kind, rtpParameters, metadata
         });
 
         this.response(requestId, {
-          senderId,
-          localId
+          senderId
         });
 
         this.pub2Session('publish', {
