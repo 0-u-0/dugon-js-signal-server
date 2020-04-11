@@ -1,4 +1,5 @@
 
+const fs = require('fs');
 const URL = require('url');
 const WebSocket = require('ws');
 const Client = require('./client');
@@ -9,15 +10,32 @@ function atob(str) {
 
 
 class Hub {
-  constructor(nc) {
+  constructor(nc, cert) {
     this.nc = nc;
     this.port = 8800;
     this.wss = null;
     this.clients = [];
+    this.cert = cert;
   }
 
   init() {
-    this.wss = new WebSocket.Server({ port: this.port });
+    let server;
+    if (this.cert) {
+      const https = require('https');
+      let options = {
+        key: fs.readFileSync(this.cert.key),
+        cert: fs.readFileSync(this.cert.cert)
+      };
+
+      server = https.createServer(options);
+    } else {
+      const http = require('http');
+      server = http.createServer();
+    }
+
+    server.listen(this.port);
+
+    this.wss = new WebSocket.Server({ server });
     console.log(`ws on port ${this.port}`)
     this.wss.on('connection', (ws, request) => {
       console.log(request.url);

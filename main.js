@@ -1,12 +1,19 @@
 const NATS = require('nats');
 
-const Hub =  require('./libs/hub');
+const Hub = require('./libs/hub');
 
+const Config = require('./config');
 
 async function main() {
-  const nc = NATS.connect();
+  const nc = NATS.connect({ servers: Config.nats });
 
-  const hub = new Hub(nc);
+  let hub;
+  if(Config.https){
+    hub = new Hub(nc,Config.cert);
+  }else{
+    hub = new Hub(nc);
+  }
+
   hub.init();
 }
 
