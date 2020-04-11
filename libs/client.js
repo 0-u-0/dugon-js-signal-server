@@ -13,11 +13,12 @@ class Client {
    * @param {*} sessionId 
    * @param {*} tokenId 
    */
-  constructor(ws, nc, sessionId, tokenId) {
+  constructor(ws, nc, sessionId, tokenId, metadata) {
     this.ws = ws;
     this.nc = nc;
     this.sessionId = sessionId;
     this.tokenId = tokenId;
+    this.metadata = metadata;
 
     //NATS subscriber id
     this.sessionSid = null;
@@ -121,8 +122,10 @@ class Client {
           ...responseMsg
         });
 
-        this.subscribe();
-        this.pub2Session('join');
+        this.subscribeNats();
+        this.pub2Session('join', {
+          metadata: this.metadata
+        });
 
         break;
       }
@@ -212,6 +215,36 @@ class Client {
 
         break;
       }
+      case 'pause': {
+        const { senderId, transportId, role } = data;
+
+        await this.requestMedia('pause', {
+          transportId,
+          senderId
+        })
+        this.response(requestId);
+        if('pub' == role){
+          this.pub2Session('pause',{
+            senderId
+          })
+        }
+        break;
+      }
+      case 'resume': {
+        const { senderId, transportId, role } = data;
+
+        await this.requestMedia('resume', {
+          transportId,
+          senderId
+        })
+        this.response(requestId);
+        if('pub' == role){
+          this.pub2Session('resume',{
+            senderId
+          })
+        }
+        break;
+      }
 
     }
   }
@@ -283,10 +316,12 @@ class Client {
 
     switch (method) {
       case 'join': {
+        const { metadata } = data;
         this.notification({
           event: 'join',
           data: {
-            tokenId
+            tokenId,
+            metadata
           }
         });
 
@@ -310,14 +345,18 @@ class Client {
       console.log(`session message: ${tokenId} -> ${this.tokenId}`, jsonMsg);
       switch (method) {
         case 'join': {
+          const { metadata } = data;
           this.notification({
             event: 'join',
             data: {
-              tokenId
+              tokenId,
+              metadata
             }
           });
 
-          this.pub2One(tokenId, 'join');
+          this.pub2One(tokenId, 'join', {
+            metadata: this.metadata
+          });
 
           this.notifySenders(tokenId);
           break;
@@ -349,12 +388,32 @@ class Client {
 
           break;
         }
+        case 'pause': {
+          const { senderId } = data;
+          this.notification({
+            'event': 'pause',
+            'data': {
+              senderId,
+            }
+          });
+          break;
+        }
+        case 'resume': {
+          const { senderId } = data;
+          this.notification({
+            'event': 'resume',
+            'data': {
+              senderId,
+            }
+          });
+          break;
+        }
       }
     }
   }
 
   //subscribe NATS
-  subscribe() {
+  subscribeNats() {
     this.oneSid = this.nc.subscribe(`${this.sessionId}.${this.tokenId}`, msg => {
       this.handleOneMsg(msg);
     });

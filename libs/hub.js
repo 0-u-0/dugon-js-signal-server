@@ -3,6 +3,10 @@ const URL = require('url');
 const WebSocket = require('ws');
 const Client = require('./client');
 
+function atob(str) {
+  return Buffer.from(str, 'base64').toString('binary');
+}
+
 
 class Hub {
   constructor(nc) {
@@ -17,11 +21,15 @@ class Hub {
     console.log(`ws on port ${this.port}`)
     this.wss.on('connection', (ws, request) => {
       console.log(request.url);
-      let urlObj = URL.parse(request.url, true);
-      let sessionId = urlObj.query['sessionId'];
-      let tokenId = urlObj.query['tokenId'];
+      const urlObj = URL.parse(request.url, true);
+      const params = urlObj.query['params'];
 
-      const client = new Client(ws, this.nc, sessionId, tokenId);
+      const { sessionId, tokenId, metadata } = JSON.parse(atob(params))
+
+      console.log(sessionId, tokenId, metadata);
+
+
+      const client = new Client(ws, this.nc, sessionId, tokenId, metadata);
       client.ondisconnect = _ => {
         const index = this.clients.indexOf(client);
         if (index > -1) {
