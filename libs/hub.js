@@ -10,9 +10,9 @@ function atob(str) {
 
 
 class Hub {
-  constructor(nc, cert) {
+  constructor(port, nc, cert) {
     this.nc = nc;
-    this.port = 8800;
+    this.port = port;
     this.wss = null;
     this.clients = [];
     this.cert = cert;
