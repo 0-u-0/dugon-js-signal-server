@@ -8,6 +8,8 @@ async function main() {
   const nc = NATS.connect({ servers: Config.nats });
 
   let hub;
+
+  console.log(Config)
   if (Config.https) {
     hub = new Hub(Config.port, nc, Config.cert);
   } else {
