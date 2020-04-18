@@ -38,27 +38,33 @@ class Hub {
     this.wss = new WebSocket.Server({ server });
     console.log(`ws on port ${this.port}`)
     this.wss.on('connection', (ws, request) => {
+      console.log('connection');
       console.log(request.url);
       const urlObj = URL.parse(request.url, true);
       const params = urlObj.query['params'];
 
-      const { sessionId, tokenId, metadata } = JSON.parse(atob(params))
+      if (params){
+        const { sessionId, tokenId, metadata } = JSON.parse(atob(params))
 
-      console.log(sessionId, tokenId, metadata);
+        console.log(sessionId, tokenId, metadata);
 
+        const client = new Client(ws, this.nc, sessionId, tokenId, metadata);
+        client.ondisconnect = _ => {
+          const index = this.clients.indexOf(client);
+          if (index > -1) {
+            this.clients.splice(index, 1);
+          }
 
-      const client = new Client(ws, this.nc, sessionId, tokenId, metadata);
-      client.ondisconnect = _ => {
-        const index = this.clients.indexOf(client);
-        if (index > -1) {
-          this.clients.splice(index, 1);
-        }
+        };
 
-      };
+        client.init();
+        //TODO: delete when websocket closed
+        this.clients.push(client);
+      }else{
+        //TODO: 
+      }
 
-      client.init();
-      //TODO: delete when websocket closed
-      this.clients.push(client);
+      
 
     });
   }
