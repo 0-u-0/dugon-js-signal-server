@@ -63,6 +63,7 @@ class Client {
 
   /* --------  Client  ---------*/
   async handleClientMsg(msg) {
+    //TODO: json decode error
     let jsonMsg = JSON.parse(msg);
     let { id, method, params } = jsonMsg;
     console.log(`client message: `, jsonMsg);
@@ -128,22 +129,6 @@ class Client {
         });
 
         break;
-      }
-      case 'transport': {
-        // const { role } = data;
-
-        // const transportId = idGenerator(this.sessionId, this.tokenId, role);
-
-        // if (!this.mediaHub.transports.has(transportId)) {
-        //   const transport = await this.mediaHub.createTransport(transportId, role);
-        //   this.response(requestId, {
-        //     'transportParameters': transport.transportParameters
-        //   });
-        // } else {
-        //   //TODO: error
-        // }
-
-        // break;
       }
       case 'dtls': {
 
