@@ -98,7 +98,12 @@ class Client {
       case 'join': {
         const { pub, sub } = data;
 
-        const responseMsg = {};
+        const { codecs } = await this.requestMedia('codecs');
+
+        const responseMsg = {
+          codecs
+        };
+
         if (pub) {
           const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
 
