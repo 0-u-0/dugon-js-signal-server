@@ -147,10 +147,10 @@ class Client {
         break;
       }
       case 'publish': {
-        const { transportId, kind, rtpParameters, metadata } = data;
+        const { transportId, codec, metadata } = data;
 
         const { senderId } = await this.requestMedia('publish', {
-          transportId, kind, rtpParameters, metadata
+          transportId, codec, metadata
         });
 
         this.response(requestId, {
@@ -213,8 +213,8 @@ class Client {
           senderId
         })
         this.response(requestId);
-        if('pub' == role){
-          this.pub2Session('pause',{
+        if ('pub' == role) {
+          this.pub2Session('pause', {
             senderId
           })
         }
@@ -228,8 +228,8 @@ class Client {
           senderId
         })
         this.response(requestId);
-        if('pub' == role){
-          this.pub2Session('resume',{
+        if ('pub' == role) {
+          this.pub2Session('resume', {
             senderId
           })
         }
@@ -282,7 +282,7 @@ class Client {
   async notifySender2Client(tokenId, senderId, metadata) {
     const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
 
-    const { parameters } = await this.requestMedia('subscribe', {
+    const { codec, receiverId } = await this.requestMedia('subscribe', {
       transportId,
       senderId
     })
@@ -290,7 +290,8 @@ class Client {
     this.notification({
       'event': 'publish',
       'data': {
-        ...parameters,
+        codec,
+        receiverId,
         senderId,
         tokenId,
         metadata
