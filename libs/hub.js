@@ -48,13 +48,12 @@ class Hub {
 
         console.log(sessionId, tokenId, metadata);
 
-        const client = new Client(ws, this.nc, sessionId, tokenId, metadata);
+        const client = new Client(ws, this.nc, String(sessionId), String(tokenId), metadata);
         client.ondisconnect = _ => {
           const index = this.clients.indexOf(client);
           if (index > -1) {
             this.clients.splice(index, 1);
           }
-
         };
 
         client.init();

@@ -249,6 +249,7 @@ class Client {
 
   //to client
   notification(params) {
+    // console.log('notification to ',this.tokenId,params);
     this.sendJSON({
       'method': 'notification',
       params
