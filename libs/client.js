@@ -19,6 +19,8 @@ class Client {
     this.sessionId = sessionId;
     this.tokenId = tokenId;
     this.metadata = metadata;
+    this.pub = false;
+    this.sub = false;
 
     //NATS subscriber id
     this.sessionSid = null;
@@ -50,14 +52,17 @@ class Client {
     this.pub2Session('leave');
 
     //Media release
-    this.requestMedia('close', {
-      transportId: idGenerator(this.sessionId, this.tokenId, 'pub')
-    });
+    if (this.pub) {
+      this.requestMedia('close', {
+        transportId: idGenerator(this.sessionId, this.tokenId, 'pub')
+      });
+    }
 
-    this.requestMedia('close', {
-      transportId: idGenerator(this.sessionId, this.tokenId, 'sub')
-    });
-
+    if (this.sub) {
+      this.requestMedia('close', {
+        transportId: idGenerator(this.sessionId, this.tokenId, 'sub')
+      });
+    }
   }
 
 
@@ -105,6 +110,7 @@ class Client {
         };
 
         if (pub) {
+          this.pub = true;
           const transportId = idGenerator(this.sessionId, this.tokenId, 'pub');
 
           const { transportParameters } = await this.requestMedia('transport', {
@@ -115,6 +121,7 @@ class Client {
           responseMsg.pub = transportParameters;
         }
         if (sub) {
+          this.sub = true;
           const transportId = idGenerator(this.sessionId, this.tokenId, 'sub');
 
           const { transportParameters } = await this.requestMedia('transport', {
@@ -130,7 +137,9 @@ class Client {
 
         this.subscribeNats();
         this.pub2Session('join', {
-          metadata: this.metadata
+          metadata: this.metadata,
+          pub: pub,
+          sub: sub
         });
 
         break;
@@ -308,7 +317,7 @@ class Client {
 
     switch (method) {
       case 'join': {
-        const { metadata } = data;
+        const { metadata, pub, sub } = data;
         this.notification({
           event: 'join',
           data: {
@@ -318,7 +327,9 @@ class Client {
         });
 
         //FIXME: maybe useless
-        this.notifySenders(tokenId);
+        if(this.pub && sub){
+          this.notifySenders(tokenId);
+        }
         break;
       }
       case 'publish': {
@@ -337,7 +348,7 @@ class Client {
       console.log(`session message: ${tokenId} -> ${this.tokenId}`, jsonMsg);
       switch (method) {
         case 'join': {
-          const { metadata } = data;
+          const { metadata, pub, sub } = data;
           this.notification({
             event: 'join',
             data: {
@@ -346,11 +357,16 @@ class Client {
             }
           });
 
+          // call back join
           this.pub2One(tokenId, 'join', {
-            metadata: this.metadata
+            metadata: this.metadata,
+            pub: this.pub,
+            sub: this.sub
           });
 
-          this.notifySenders(tokenId);
+          if(this.pub && sub){
+            this.notifySenders(tokenId);
+          }
           break;
         }
         case 'leave': {
